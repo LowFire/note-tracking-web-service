@@ -14,6 +14,7 @@ const pool = new Pool({connectionString: connectionString});
 //homepage
 app.get("/", function (req, res) {
     res.render("home");
+    res.end();
 });
 
 app.post("/getData", function (req, postRes){
