@@ -14,7 +14,6 @@ const pool = new Pool({connectionString: connectionString});
 //homepage
 app.get("/", function (req, res) {
     res.render("home");
-    res.end();
 });
 
 app.post("/getData", function (req, postRes){
@@ -27,4 +26,4 @@ app.post("/getData", function (req, postRes){
     });
 });
 
-app.listen(5000);
+app.listen(process.env.PORT || 5000);
