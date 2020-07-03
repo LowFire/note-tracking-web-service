@@ -1,4 +1,2 @@
-#node_modules/
-#.env
-# Keep environment variables private...
-# .env
+node_modules/
+.env
