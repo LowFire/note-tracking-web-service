@@ -2,6 +2,7 @@ let express = require("express");
 let path = require("path");
 let bodyParser = require("body-parser");
 let passwordHash = require("password-hash");
+let session = require('express-session')
 
 let app = express();
 app.set("view engine", "ejs");
@@ -9,30 +10,76 @@ app.set("views", "views");
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:false}));
+app.use(session({secret: 'ruthless beef', saveUninitialized: true, resave: false}));
 
 const { Pool } = require("pg");
 require('dotenv').config();
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({connectionString: connectionString});
 
-//variable storing user id. If 0, client is not signed in.
-let userid = 0;
-
 //homepage
 app.get("/", function (req, res) {
-    if (userid === 0)
-        res.redirect("/loginpage");
-    else
-        res.render("home");
+    req.session.userid = 5;
+    res.render("home");
 });
 
 app.post("/getData", function (req, postRes){
-    pool.query("SELECT note_name, note_date, contents FROM notes WHERE user_id = $1", [1], (err, res) => {
+    let userid = req.session.userid;
+    pool.query("SELECT note_name, note_date, contents, id FROM notes WHERE user_id = $1", [userid], (err, res) => {
         if (err) {
             throw err;
         }
         postRes.write(JSON.stringify(res.rows));
         postRes.end();
+    });
+});
+
+app.post("/edit", function (req, res) {
+    let userid = req.session.userid;
+    let noteid = req.body.noteid;
+    let note_name = req.body.note_name;
+    let note_date = req.body.note_date;
+    let contents = req.body.contents;
+    pool.query("UPDATE notes SET note_name = $1, note_date = $2, contents = $3 WHERE user_id = $4 AND id = $5", [note_name, note_date, contents, userid, noteid], (err, resQuery) => {
+        if (err) {
+            res.write("{success: false}");
+            throw err
+        } else {
+            res.write("{success: true}");
+        }
+        res.end();
+    });
+});
+
+app.post("/add", function (req, res) {
+    let userid = req.session.userid;
+    let note_name = req.body.note_name;
+    let note_date = req.body.note_date;
+    let contents = req.body.contents;
+    pool.query("INSERT INTO notes (note_name, note_date, contents, user_id) VALUES ($1, $2, $3, $4)", [note_name, note_date, contents, userid], (err, resQuery) => {
+        if (err) {
+            res.write("{success: false}");
+            throw err
+        } else {
+            res.write("{success: true}");
+        }
+        res.end();
+    });
+});
+
+app.post("/delete", function (req, res) {
+    let noteid = req.body.noteid;
+    let userid = req.session.userid;
+    console.log(noteid);
+    console.log(userid);
+    pool.query("DELETE FROM notes WHERE id = $1 AND user_id = $2", [noteid, userid], (err, resQuery) => {
+        if (err) {
+            res.write("{success: false}");
+            throw err
+        } else {
+            res.write("{success: true}");
+        }
+        res.end();
     });
 });
 
