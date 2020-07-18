@@ -19,8 +19,10 @@ const pool = new Pool({connectionString: connectionString});
 
 //homepage
 app.get("/", function (req, res) {
-    req.session.userid = 5;
-    res.render("home");
+    if (req.session.userid)
+        res.render("home");
+    else
+        res.redirect("/loginpage");
 });
 
 app.post("/getData", function (req, postRes){
@@ -42,10 +44,7 @@ app.post("/edit", function (req, res) {
     let contents = req.body.contents;
     pool.query("UPDATE notes SET note_name = $1, note_date = $2, contents = $3 WHERE user_id = $4 AND id = $5", [note_name, note_date, contents, userid, noteid], (err, resQuery) => {
         if (err) {
-            res.write("{success: false}");
             throw err
-        } else {
-            res.write("{success: true}");
         }
         res.end();
     });
@@ -58,10 +57,7 @@ app.post("/add", function (req, res) {
     let contents = req.body.contents;
     pool.query("INSERT INTO notes (note_name, note_date, contents, user_id) VALUES ($1, $2, $3, $4)", [note_name, note_date, contents, userid], (err, resQuery) => {
         if (err) {
-            res.write("{success: false}");
             throw err
-        } else {
-            res.write("{success: true}");
         }
         res.end();
     });
@@ -70,26 +66,57 @@ app.post("/add", function (req, res) {
 app.post("/delete", function (req, res) {
     let noteid = req.body.noteid;
     let userid = req.session.userid;
-    console.log(noteid);
-    console.log(userid);
-    pool.query("DELETE FROM notes WHERE id = $1 AND user_id = $2", [noteid, userid], (err, resQuery) => {
-        if (err) {
-            res.write("{success: false}");
-            throw err
-        } else {
-            res.write("{success: true}");
-        }
-        res.end();
-    });
+
+    if (noteid) {
+        pool.query("DELETE FROM notes WHERE id = $1 AND user_id = $2", [noteid, userid], (err, resQuery) => {
+            if (err) {
+                throw err
+            }
+            res.end();
+        });
+    } else {
+        console.log("Error: Cannot delete note. Note id is undefined.");
+    }
 });
 
 app.get("/loginpage", function (req, res) {
     res.render("loginpage");
 });
 
+app.get("/logout", function (req, res) {
+    req.session.userid = 0;
+    res.end();
+});
+
 //validate username and password
 app.post("/login", function (req, res) {
+    // code = 0 Success
+    // code = 1 Invalid Username
+    // code = 2 Invalid password
+    let username = req.body.username;
+    let password = req.body.password;
+    pool.query("SELECT username, hash_password, id FROM users WHERE username = $1", [username], (err, resQuery) => {
+        if (err) {
+            throw err;
+        }
 
+        if (!resQuery.rows) {
+            res.write("1");
+            console.log("invalid username");
+            res.end();
+        } else {
+            hashedPassword = resQuery.rows[0].hash_password;
+            if (passwordHash.verify(password, hashedPassword)) {
+                req.session.userid = resQuery.rows[0].id;
+                res.write("0");
+                res.end();
+            } else {
+                res.write("1");
+                console.log("Invalid password");
+                res.end();
+            }
+        }
+    });
 });
 
 app.get("/signuppage", function (req, res) {

@@ -32,19 +32,49 @@ function edit () {
 }
 
 function save () {
+    let nameInput = this.parentNode.childNodes[3];
+    let dateInput = this.parentNode.childNodes[4];
+    let contentInput = this.parentNode.childNodes[5];
+    let nameValue = nameInput.value;
+    let dateValue = dateInput.value;
+    let contentValue = contentInput.value;
+    let noteid = this.parentNode.childNodes[10].value;
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            let success = JSON.parse(this.responseText).success;
-            if (success) {
-                console.log("Note successfully updated");
-            } else {
-                console.log("Error: failed to update note");
-            }
         }
     };
     xhttp.open("POST", "/edit", true);
-    xhttp.send();
+    xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhttp.send("note_name=" + nameValue + "&note_date=" + dateValue + "&contents=" + contentValue + "&noteid=" + noteid);
+
+    //Toggle button visibilities
+    let editBtn = this.parentNode.childNodes[8];
+    let deleteBtn = this.parentNode.childNodes[9];
+    let saveBtn = this.parentNode.childNodes[6];
+    let cancelBtn = this.parentNode.childNodes[7];
+
+    editBtn.classList.toggle("d-none");
+    cancelBtn.classList.toggle("d-none");
+    saveBtn.classList.toggle("d-none");
+    deleteBtn.classList.toggle("d-none");
+
+    //toggle input and data visibility
+    let name = this.parentNode.childNodes[0];
+    let date = this.parentNode.childNodes[1];
+    let contents = this.parentNode.childNodes[2];
+    name.classList.toggle("d-none");
+    date.classList.toggle("d-none");
+    contents.classList.toggle("d-none");
+    nameInput.classList.toggle("d-none");
+    dateInput.classList.toggle("d-none");
+    contentInput.classList.toggle("d-none");
+    name.textContent = nameInput.value;
+    dateInput.textContent = dateInput.value;
+    contents.textContent = contentInput.value;
+    nameInput.value = "";
+    dateInput.value = "";
+    contentInput.value = "";
 }
 
 function cancel () {
@@ -81,38 +111,49 @@ function del () {
     let confirm = window.confirm("Are you sure you want to delete this note?");
 
     if (confirm) {
+        let noteid = this.parentNode.childNodes[10];
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-                let success = JSON.parse(this.responseText).success;
-                if (success) {
-                    console.log("Note has been successfully deleted from database");
-                } else {
-                    console.log("Error: failed to delete note from database");
-                }
-            }
         };
-        let noteid = this.parentNode.childNodes[10].value
+        console.log(noteid.value);
         xhttp.open("POST", "/delete", true);
-        xhttp.send();
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.send("noteid=" + noteid.value);
         this.parentNode.parentNode.remove();
     }
 }
 
 function createNewNote() {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            let success = JSON.parse(this.responseText).success;
-            if (success) {
-                console.log("New note successfully added to database");
-            } else {
-                console.log("Error: failed to add new note to database");
-            }
+    let nameInput = document.querySelector("#name");
+    let dateInput = document.querySelector("#date");
+    let contentInput = document.querySelector("#content");
+    let error = document.querySelector("#error");
+
+    if (nameInput.value && dateInput.value && contentInput.value) {
+
+        let noteList = noteScreen.childNodes[1];
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                getData(noteList);
+            } 
+        };
+        xhttp.open("POST", "/add", true);
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.send("note_name=" + nameInput.value + "&note_date=" + dateInput.value + 
+        "&contents=" + contentInput.value);
+
+        error.textContent = "";
+        hideScreen(2);
+        showScreen(1);
+        while (noteList.children[0]) {
+            noteList.removeChild(noteList.children[0]);
         }
-    };
-    xhttp.open("POST", "/add", true);
-    xhttp.send();
+        noteScreen.removeChild(noteScreen.children[1]);
+        noteScreen.insertBefore(noteList, noteScreen.children[1]);
+    } else {
+        error.textContent = "Fields cannot be blank. Make sure to fill them all in";
+    }
 }
 
 function getData(noteList) {
@@ -166,6 +207,7 @@ function getData(noteList) {
                 //This input will forever be hidden. Meant to store the noteid.
                 let noteid = document.createElement("INPUT");
                 noteid.type = "number";
+                noteid.id = "noteid";
                 noteid.classList.toggle("d-none");
                 noteid.value = noteData[i].id;
                 
@@ -199,6 +241,19 @@ function getData(noteList) {
     xhttp.send();
 }
 
+function logout () {
+    console.log("logout event has fired");
+    let xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            console.log("request has finished");
+            window.location.href = "http://localhost:5000/";
+        }
+    };
+    xhttp.open("GET", "/logout", true);
+    xhttp.send();
+}
+
 function createAddScreen () {
     let addScr = document.createElement("DIV");
 
@@ -207,10 +262,13 @@ function createAddScreen () {
     let addInputs = document.createElement("DIV");
     let nameInput = document.createElement("INPUT");
     nameInput.type = "text";
+    nameInput.id = "name";
     let dateInput = document.createElement("INPUT");
     dateInput.type = "date";
+    dateInput.id = "date";
     let contentInput = document.createElement("INPUT");
     contentInput.type = "text";
+    contentInput.id = "content";
 
     addInputs.appendChild(nameInput);
     addInputs.appendChild(dateInput);
@@ -228,10 +286,14 @@ function createAddScreen () {
         hideScreen(2);
     });
 
+    let error = document.createElement("P");
+    error.id = "error";
+
     addScr.appendChild(addHead);
     addScr.appendChild(addInputs);
     addScr.appendChild(saveBtn);
     addScr.appendChild(cancelBtn);
+    addScr.appendChild(error);
 
     return addScr;
 }
@@ -251,9 +313,15 @@ function createNoteScreen () {
         hideScreen(1);
     });
 
+    let logoutBtn = document.createElement("BUTTON");
+    logoutBtn.classList.add("btn", "btn-lg", "btn-primary");
+    logoutBtn.textContent = "Logout";
+    logoutBtn.addEventListener ("click", logout);
+
     noteScr.appendChild(noteHead);
     noteScr.appendChild(noteList);
     noteScr.appendChild(addBtn);
+    noteScr.appendChild(logoutBtn);
     getData(noteList);
     return noteScr;
 }

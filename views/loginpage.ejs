@@ -8,15 +8,15 @@
   <body>
     <div class="container">    
       <h2>Enter username and password</h2>
-      <form action="/login" method="POST">
-        <label for="username">Username: </label>
-        <input type="text" id="username">
-        <label for="password">Password: </label>
-        <input type="password" id="password">
-        <input type="submit">
-      </form>
+      <label for="username">Username: </label>
+      <input type="text" id="username">
+      <label for="password">Password: </label>
+      <input type="password" id="password">
+      <input type="submit" id="submit">
       <p>If you don't have an account...</p>
       <a role="button" href="/signuppage" class="btn btn_primary">SIGN UP</a>
+      <p id="error"></p>
     </div>
+    <script type="text/javascript" src="loginpage.js"></script>
   </body>
 </html>
