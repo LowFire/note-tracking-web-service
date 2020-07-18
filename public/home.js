@@ -246,8 +246,11 @@ function logout () {
     let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            console.log("request has finished");
-            window.location.href = "http://localhost:5000/";
+            let form = document.createElement("FORM");
+            form.method = "GET";
+            form.action = "/";
+            rootNode.appendChild(form);
+            form.submit();
         }
     };
     xhttp.open("GET", "/logout", true);
